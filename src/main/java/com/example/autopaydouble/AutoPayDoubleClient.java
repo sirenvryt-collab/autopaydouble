@@ -82,14 +82,13 @@ public class AutoPayDoubleClient implements ClientModInitializer {
 
 					String command = "/pay " + player + " " + amountStr;
 
-					ClickEvent clickEvent = new ClickEvent(
-							autoSend ? ClickEvent.Action.RUN_COMMAND : ClickEvent.Action.SUGGEST_COMMAND,
-							command
-					);
-					HoverEvent hoverEvent = new HoverEvent(
-							HoverEvent.Action.SHOW_TEXT,
-							Text.literal("Click to " + (autoSend ? "pay" : "fill in") + " double back: " + command)
-					);
+ClickEvent clickEvent = autoSend
+        ? new ClickEvent.RunCommand(command)
+        : new ClickEvent.SuggestCommand(command);
+
+HoverEvent hoverEvent = new HoverEvent.ShowText(
+        Text.literal("Click to " + (autoSend ? "pay" : "fill in") + " double back: " + command)
+);
 
 					Style newStyle = message.getStyle().withClickEvent(clickEvent).withHoverEvent(hoverEvent);
 					MutableText newMessage = message.copy().setStyle(newStyle);
