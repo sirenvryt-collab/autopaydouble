@@ -16,30 +16,15 @@ import java.util.regex.Pattern;
 
 public class AutoPayDoubleClient implements ClientModInitializer {
 
-	/**
-	 * TODO: Replace this with the ACTUAL format Donut SMP uses for payment
-	 * messages. Join the server, get paid a small amount, and check the raw
-	 * chat message (F3 + copy, or a log viewer) to see the exact wording and
-	 * currency symbol. The pattern below is a reasonable guess and will need
-	 * tweaking.
-	 *
-	 * Example guessed formats it currently tries to match:
-	 *   "PlayerName paid you $100.00"
-	 *   "PlayerName has paid you 100 coins"
-	 *   "You received $100.00 from PlayerName"
-	 */
+	// Amount now also captures an optional k/m/b/t shorthand suffix, e.g. "40m".
+	private static final String AMOUNT_REGEX = "\\$?(?<amount>[0-9]+(?:\\.[0-9]+)?)(?<suffix>[kKmMbBtT])?";
+
 	private static final Pattern[] PAYMENT_PATTERNS = new Pattern[] {
-			Pattern.compile("^(?<player>[A-Za-z0-9_]{1,16}) (?:paid|has paid) you \\$?(?<amount>[0-9]+(?:\\.[0-9]+)?)"),
-			Pattern.compile("^You received \\$?(?<amount>[0-9]+(?:\\.[0-9]+)?) from (?<player>[A-Za-z0-9_]{1,16})")
+			Pattern.compile("^(?<player>[A-Za-z0-9_]{1,16}) (?:paid|has paid) you " + AMOUNT_REGEX),
+			Pattern.compile("^You received " + AMOUNT_REGEX + " from (?<player>[A-Za-z0-9_]{1,16})")
 	};
 
-	/**
-	 * If true, clicking the message immediately SENDS the /pay command.
-	 * If false (default), clicking only TYPES it into the chat box so you
-	 * still have to press Enter yourself, which keeps a human in the loop.
-	 */
 	private static boolean autoSend = false;
-
 	private static boolean enabled = true;
 
 	@Override
@@ -73,34 +58,69 @@ public class AutoPayDoubleClient implements ClientModInitializer {
 				Matcher matcher = pattern.matcher(plain);
 				if (matcher.find()) {
 					String player = matcher.group("player");
-					double amount = Double.parseDouble(matcher.group("amount"));
-					double doubled = amount * 2;
+					double rawAmount = Double.parseDouble(matcher.group("amount"));
+					String suffix = matcher.group("suffix");
 
-					String amountStr = (doubled == Math.floor(doubled))
-							? String.valueOf((long) doubled)
-							: String.valueOf(doubled);
+					double realValue = rawAmount * multiplierFor(suffix);
+					double doubled = realValue * 2;
 
+					String amountStr = formatCompact(doubled);
 					String command = "/pay " + player + " " + amountStr;
 
-ClickEvent clickEvent = autoSend
-        ? new ClickEvent.RunCommand(command)
-        : new ClickEvent.SuggestCommand(command);
+					ClickEvent clickEvent = autoSend
+							? new ClickEvent.RunCommand(command)
+							: new ClickEvent.SuggestCommand(command);
 
-HoverEvent hoverEvent = new HoverEvent.ShowText(
-        Text.literal("Click to " + (autoSend ? "pay" : "fill in") + " double back: " + command)
-);
+					HoverEvent hoverEvent = new HoverEvent.ShowText(
+							Text.literal("Click to " + (autoSend ? "pay" : "fill in") + " double back: " + command)
+					);
 
 					Style newStyle = message.getStyle().withClickEvent(clickEvent).withHoverEvent(hoverEvent);
 					MutableText newMessage = message.copy().setStyle(newStyle);
 
-					// Re-fire the (now clickable) message instead of the original.
 					MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(newMessage);
-					return false; // suppress the original, unmodified message
+					return false;
 				}
 			}
 
 			return true;
 		});
+	}
+
+	private static double multiplierFor(String suffix) {
+		if (suffix == null) {
+			return 1;
+		}
+		return switch (Character.toLowerCase(suffix.charAt(0))) {
+			case 'k' -> 1_000d;
+			case 'm' -> 1_000_000d;
+			case 'b' -> 1_000_000_000d;
+			case 't' -> 1_000_000_000_000d;
+			default -> 1;
+		};
+	}
+
+	private static String formatCompact(double value) {
+		String[] suffixes = { "", "k", "m", "b", "t" };
+		int tier = 0;
+		double reduced = value;
+
+		while (Math.abs(reduced) >= 1000 && tier < suffixes.length - 1) {
+			reduced /= 1000;
+			tier++;
+		}
+
+		String numberPart;
+		if (reduced == Math.floor(reduced)) {
+			numberPart = String.valueOf((long) reduced);
+		} else {
+			numberPart = String.format("%.1f", reduced);
+			if (numberPart.endsWith(".0")) {
+				numberPart = numberPart.substring(0, numberPart.length() - 2);
+			}
+		}
+
+		return numberPart + suffixes[tier];
 	}
 
 	private static void feedback(String msg) {
