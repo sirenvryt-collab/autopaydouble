@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "autopaydouble",
+  "version": "${version}",
+  "name": "Auto Pay Double",
+  "description": "Click a payment message in chat to instantly pay that player back double.",
+  "authors": ["you"],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/autopaydouble/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.example.autopaydouble.AutoPayDoubleClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "fabric-api": "*"
+  }
+}
