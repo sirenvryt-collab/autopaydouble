@@ -19,10 +19,10 @@ public class AutoPayDoubleClient implements ClientModInitializer {
 	// Amount now also captures an optional k/m/b/t shorthand suffix, e.g. "40m".
 	private static final String AMOUNT_REGEX = "\\$?(?<amount>[0-9]+(?:\\.[0-9]+)?)(?<suffix>[kKmMbBtT])?";
 
-	private static final Pattern[] PAYMENT_PATTERNS = new Pattern[] {
-			Pattern.compile("^(?<player>[A-Za-z0-9_]{1,16}) (?:paid|has paid) you " + AMOUNT_REGEX),
-			Pattern.compile("^You received " + AMOUNT_REGEX + " from (?<player>[A-Za-z0-9_]{1,16})")
-	};
+private static final Pattern[] PAYMENT_PATTERNS = new Pattern[] {
+		Pattern.compile("^(?<player>\\.?[A-Za-z0-9_]{1,16}) (?:paid|has paid) you " + AMOUNT_REGEX),
+		Pattern.compile("^You received " + AMOUNT_REGEX + " from (?<player>\\.?[A-Za-z0-9_]{1,16})")
+};
 
 	private static boolean autoSend = false;
 	private static boolean enabled = true;
